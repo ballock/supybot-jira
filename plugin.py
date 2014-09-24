@@ -340,7 +340,7 @@ class Jira(callbacks.PluginRegexp):
             try:
                 self.establishConnection(user)
             except:
-                irc.reply("Cannot establish connection. Probably invalid or no token.")
+                irc.reply("Cannot establish connection. Probably invalid or no token. See https://wiki.oslo.osa/staffwiki/Company_IRC_service/pybot")
                 return
         try:
             issue = self.jira[user].issue(matched_ticket.string)
