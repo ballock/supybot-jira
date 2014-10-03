@@ -396,6 +396,86 @@ class Jira(callbacks.PluginRegexp):
             return
     unwatch = wrap(unwatch, [('matches', re.compile(str(conf.supybot.plugins.Jira.snarfRegex)), "The first argument should be the issue ID like JRA-123, but it doesn't match the pattern.")])
 
+    def ccadd(self, irc, msg, args, matched_ticket, person):
+        """<issue> <person>
+
+        Adds a person to CC list. If no person specified, defaults to requester."""
+
+        #Get user name. Very simple. Assumes that the data in ident is authoritative and no-one can fake it.
+        user = msg.user
+        if (self.jira.has_key( user ) != True):
+            try:
+                self.establishConnection(user)
+            except:
+                irc.reply("Cannot establish connection. Probably invalid or no token.")
+                return
+
+        if (person is None):
+            person = user
+
+        try:
+            issue = self.jira[user].issue(matched_ticket.string)
+        except Exception as detail:
+            irc.reply("Cannot find the issue. Error: %s.", detail)
+            return
+        cclist = []
+        try:
+            for cc in issue.fields.customfield_10220:
+                cclist.append({"name": cc.name})
+        except:
+            pass #nothing happens here, customfield is empty
+        cclist.append({"name": person})
+        try:
+            issue.update(fields={"customfield_10220": cclist})
+            irc.reply("OK. CC list modified.")
+        except Exception as detail:
+            irc.reply("Cannot change the CC list. Error: %s." % detail)
+            return
+    ccadd = wrap(ccadd, [('matches', re.compile(str(conf.supybot.plugins.Jira.snarfRegex)), "The first argument should be the issue ID like JRA-123, but it doesn't match the pattern."), optional('somethingWithoutSpaces')])
+
+    def ccremove(self, irc, msg, args, matched_ticket, person):
+        """<issue> <person>
+
+        Removes a person from CC list. If no person specified, defaults to requester."""
+
+        #Get user name. Very simple. Assumes that the data in ident is authoritative and no-one can fake it.
+        user = msg.user
+        if (self.jira.has_key( user ) != True):
+            try:
+                self.establishConnection(user)
+            except:
+                irc.reply("Cannot establish connection. Probably invalid or no token.")
+                return
+
+        if (person is None):
+            person = user
+
+        try:
+            issue = self.jira[user].issue(matched_ticket.string)
+        except Exception as detail:
+            irc.reply("Cannot find the issue. Error: %s." % detail)
+            return
+        cclist = []
+        found = False
+        try:
+            for cc in issue.fields.customfield_10220:
+                if cc.name != person:
+                    cclist.append({"name": cc.name})
+                else:
+                    found = True
+        except:
+            pass
+        if found is False:
+            irc.reply("Sorry, %s is not currently in CC list." % person)
+            return
+        try:
+            issue.update(fields={"customfield_10220": cclist})
+            irc.reply("OK. CC list modified.")
+        except Exception as detail:
+            irc.reply("Cannot change the CC list. Error: %s." %detail)
+            return
+    ccremove = wrap(ccremove, [('matches', re.compile(str(conf.supybot.plugins.Jira.snarfRegex)), "The first argument should be the issue ID like JRA-123, but it doesn't match the pattern."), optional('somethingWithoutSpaces')])
+
     def gettoken(self, irc, msg, args, force):
         """
 
