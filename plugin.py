@@ -246,6 +246,14 @@ class Jira(callbacks.PluginRegexp):
                     return
                 irc.reply("Resolved successfully")
                 return
+            if t['to']['name'] == "Done":
+                try:
+                    self.jira[user].transition_issue(issue, t['id'], { "resolution": {"name": resolution} }, comment)
+                except Exception as detail:
+                    irc.reply("Cannot transition to Done. Error %s." % detail)
+                    return
+                irc.reply("Resolved (as 'Done') successfully")
+                return
         irc.reply("No transition to Resolved state possible from the ticket.")
 
     def resolve(self, irc, msg, args, matched_ticket, comment):
